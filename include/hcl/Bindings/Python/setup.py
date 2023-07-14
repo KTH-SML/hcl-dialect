@@ -11,7 +11,9 @@ def setup():
         author="HeteroCL",
         setup_requires=[],
         install_requires=[],
-        packages=setuptools.find_packages(),
+        packages=setuptools.find_namespace_packages(
+            include=['hcl_mlir*'],
+        ),
         url="https://github.com/cornell-zhang/hcl-dialect",
         python_requires=">=3.6",
         classifiers=[
