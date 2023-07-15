@@ -1,16 +1,30 @@
-FROM alpine:3.17
+FROM ubuntu:22.04
 
 ARG LLVM_VERSION="15.0.7"
 
+RUN apt-get update && \
+    apt-get install -y \
+        cmake \
+        g++ \
+        gcc \
+        git \
+        make \
+        python3-build \
+        python3-dev \
+        python3-pip \
+        python3-virtualenv \
+        wget \ 
+        xz-utils \
+        && \
+    rm -r /var/lib/apt/lists/*
+
 WORKDIR /tmp
-RUN apk add --no-cache xz wget
 RUN wget "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/llvm-project-$LLVM_VERSION.src.tar.xz" && \
     tar -xf "llvm-project-$LLVM_VERSION.src.tar.xz" && \
     rm "llvm-project-$LLVM_VERSION.src.tar.xz" && \
     mv "llvm-project-$LLVM_VERSION.src" /llvm-project
 
 WORKDIR /llvm-project/build
-RUN apk add --no-cache git gcc g++ make cmake python3-dev py3-pip
 RUN pip install -r ../mlir/python/requirements.txt && \
     cmake ../llvm \
         -DCMAKE_BUILD_TYPE=Release \
@@ -26,16 +40,13 @@ WORKDIR /
 COPY . /hcl-dialect
 
 WORKDIR /hcl-dialect/build
-RUN pip install build && \ 
-    cmake .. \
+RUN cmake .. \
         -DMLIR_DIR=/llvm-project/build/lib/cmake/mlir \
         -DPYTHON_BINDING=ON \
         -DOPENSCOP=OFF \
         && \
     make -j`nproc` && \
-    cp -rL tools/hcl/python_packages python_packages && \
-    touch python_packages/hcl_core/hcl_mlir/dialects/__init__.py && \
-    touch python_packages/hcl_core/hcl_mlir/_mlir_libs/_mlir/__init__.py && \
+    cp -rL tools/hcl/python_packages . && \
     python3 -m build \
         --wheel \
         -o ./dist \
