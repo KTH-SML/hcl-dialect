@@ -50,6 +50,6 @@ RUN cmake .. \
     python3 -m build \
         --wheel \
         -o ./dist \
-        python_packages/hcl_core
-
-CMD install --mode=666 -Dt /dist ./dist/* 
+        python_packages/hcl_core \
+        && \
+    install --mode=666 -Dt /dist ./dist/* 
