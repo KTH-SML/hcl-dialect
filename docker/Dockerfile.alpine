@@ -1,0 +1,65 @@
+FROM alpine:3.17
+
+ARG LLVM_VERSION="15.0.7"
+ARG LLVM_TARGET="X86"
+
+RUN apk add --no-cache \
+        cmake \
+        clang lld \
+        git \
+        make \
+        python3-dev \
+        py3-build \
+        py3-pip \
+        py3-yaml \
+        wget \ 
+        xz 
+
+WORKDIR /tmp
+RUN wget "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/llvm-project-$LLVM_VERSION.src.tar.xz" && \
+    tar -xf "llvm-project-$LLVM_VERSION.src.tar.xz" && \
+    rm "llvm-project-$LLVM_VERSION.src.tar.xz" && \
+    mv "llvm-project-$LLVM_VERSION.src" /llvm-project
+
+        # -DCMAKE_CXX_FLAGS="-static -static-libc++" \
+        # -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++ -stdlib=stdc++" \
+        # -DCMAKE_EXE_LINKER_FLAGS="-lstdc++" \
+WORKDIR /llvm-project/build
+RUN pip install -r ../mlir/python/requirements.txt && apk add gcc
+RUN cmake ../llvm \
+        -DCMAKE_C_COMPILER="clang" \
+        -DCMAKE_CXX_COMPILER="clang++" \
+        -DCMAKE_LINKER="ld.lld" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DLLVM_ENABLE_LLD=ON \
+        -DLLVM_ENABLE_LIBCXX=ON \
+        -DLLVM_ENABLE_RUNTIMES="libcxxabi" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DLLVM_ENABLE_PROJECTS=mlir \
+        -DLLVM_TARGETS_TO_BUILD="$LLVM_TARGET" \
+        -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+        -DPython3_EXECUTABLE=`which python3` \
+        && \
+    make -j`nproc`
+
+# WORKDIR /
+# COPY . /hcl-dialect
+# 
+# WORKDIR /hcl-dialect/build
+# RUN cmake .. \
+#         -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++ -stdlib=c++abi" \
+#         -DCMAKE_EXE_LINKER_FLAGS="-stdlib=c++abi -lc++abi" \
+#         -DLLVM_EXTERNAL_LIT=/llvm-project/build/bin/llvm-lit \
+#         -DMLIR_DIR=/llvm-project/build/lib/cmake/mlir \
+#         -DOPENSCOP=OFF \
+#         -DPYTHON_BINDING=ON \
+#         -DPython3_EXECUTABLE=`which python3` \
+#         && \
+#     make -j`nproc` && \
+#     cp -rL tools/hcl/python_packages . && \
+#     python3 -m build \
+#         --wheel \
+#         -o ./dist \
+#         python_packages/hcl_core \
+#         && \
+#     install --mode=666 -Dt /dist ./dist/* 

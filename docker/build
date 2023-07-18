@@ -2,4 +2,4 @@
 
 PROJ="$(dirname $(dirname $0))"
 
-docker build -t hcl-dialect -f "$PROJ/docker/Dockerfile" "$PROJ"
+docker build -t hcl-dialect -f "$PROJ/docker/Dockerfile" "$@" "$PROJ"
